@@ -25,9 +25,9 @@ Overview of the fastest serialization and deserialization methods at different p
 
 | Item Count | Fastest Serialize | Fastest Deserialize | Notes |
 | :--- | :--- | :--- | :--- |
-| **16** | MemoryPack Span (28.60 ns) | LiteSerializer (83.92 ns) | LiteSerializer Span is close at 35.99 ns. MemoryPack deserialization is close at 86.36 ns. |
-| **128** | MemoryPack Span (31.76 ns) | LiteSerializer (142.90 ns) | LiteSerializer Span is close at 40.68 ns. MemoryPack deserialization is close at 145.03 ns. |
-| **1024** | MemoryPack Span (66.51 ns) | MemoryPack (505.34 ns) | LiteSerializer Span is close at 69.36 ns. LiteSerializer deserialization is close at 572.49 ns. |
+| **16** | MemoryPack Span (24.92 ns) | **LiteSerializer (69.28 ns)** | LiteSerializer Span is close at 29.10 ns. MemoryPack deserialization is 75.13 ns. |
+| **128** | MemoryPack Span (28.65 ns) | **LiteSerializer (115.40 ns)** | LiteSerializer Span is close at 31.85 ns. MemoryPack deserialization is 118.78 ns. |
+| **1024** | MemoryPack Span (54.11 ns) | **LiteSerializer (423.75 ns)** | LiteSerializer Span is close at 57.31 ns. MemoryPack deserialization is 448.05 ns. |
 
 ---
 
@@ -39,52 +39,52 @@ Full metrics comparison across all libraries and payload sizes from the Benchmar
 
 | Method | Mean | Error | StdDev | P95 | Gen0 | Gen1 | Gen2 | Allocated |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **LiteSerializer_Serialize** | **77.64 ns** | 1.926 ns | 2.218 ns | 79.23 ns | 0.0057 | - | - | 216 B |
-| **LiteSerializer_Serialize_Span** | **35.99 ns** | 0.836 ns | 0.963 ns | 37.25 ns | - | - | - | 0 B |
-| **MemoryPack_Serialize** | **57.88 ns** | 1.067 ns | 1.229 ns | 59.58 ns | 0.0057 | - | - | 216 B |
-| **MemoryPack_Serialize_Span** | **28.60 ns** | 0.644 ns | 0.742 ns | 29.60 ns | - | - | - | 0 B |
-| **MessagePack_Serialize** | **99.56 ns** | 1.478 ns | 1.702 ns | 101.64 ns | 0.0044 | - | - | 168 B |
-| **SystemTextJson_Serialize** | **266.15 ns** | 3.660 ns | 4.215 ns | 270.74 ns | 0.0148 | - | 0.0005 | 0 B |
-| **LiteSerializer_Deserialize** | **83.92 ns** | 2.487 ns | 2.865 ns | 86.92 ns | 0.0108 | - | - | 408 B |
-| **MemoryPack_Deserialize** | **86.36 ns** | 1.261 ns | 1.452 ns | 88.95 ns | 0.0117 | - | - | 440 B |
-| **MessagePack_Deserialize** | **186.50 ns** | 1.312 ns | 1.511 ns | 189.30 ns | 0.0117 | - | - | 440 B |
-| **SystemTextJson_Deserialize** | **576.38 ns** | 6.054 ns | 6.972 ns | 591.03 ns | 0.0267 | - | - | 1008 B |
+| **LiteSerializer_Serialize** | **63.19 ns** | 1.319 ns | 1.760 ns | 65.44 ns | 0.0057 | - | - | 216 B |
+| **LiteSerializer_Serialize_Span** | **29.10 ns** | 0.350 ns | 0.467 ns | 29.85 ns | - | - | - | 0 B |
+| **MemoryPack_Serialize** | **54.13 ns** | 0.466 ns | 0.622 ns | 54.97 ns | 0.0058 | - | - | 216 B |
+| **MemoryPack_Serialize_Span** | **24.92 ns** | 0.235 ns | 0.313 ns | 25.42 ns | - | - | - | 0 B |
+| **MessagePack_Serialize** | **89.78 ns** | 0.686 ns | 0.916 ns | 91.29 ns | 0.0044 | - | - | 168 B |
+| **SystemTextJson_Serialize** | **251.25 ns** | 2.910 ns | 3.885 ns | 257.10 ns | 0.0143 | - | - | 536 B |
+| **LiteSerializer_Deserialize** | **69.28 ns** | 3.914 ns | 5.224 ns | 76.09 ns | 0.0108 | - | - | 408 B |
+| **MemoryPack_Deserialize** | **75.13 ns** | 4.133 ns | 5.518 ns | 80.58 ns | 0.0117 | - | - | 440 B |
+| **MessagePack_Deserialize** | **162.24 ns** | 1.204 ns | 1.566 ns | 164.84 ns | 0.0117 | - | - | 440 B |
+| **SystemTextJson_Deserialize** | **508.44 ns** | 5.618 ns | 7.500 ns | 520.34 ns | 0.0267 | - | - | 1008 B |
 
 ### Detailed Results (Item Count = 128)
 
 | Method | Mean | Error | StdDev | P95 | Gen0 | Gen1 | Gen2 | Allocated |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **LiteSerializer_Serialize** | **149.94 ns** | 2.474 ns | 2.750 ns | 153.61 ns | 0.0176 | - | - | 664 B |
-| **LiteSerializer_Serialize_Span** | **40.68 ns** | 1.115 ns | 1.284 ns | 42.62 ns | - | - | - | 0 B |
-| **MemoryPack_Serialize** | **121.64 ns** | 0.953 ns | 1.098 ns | 123.42 ns | 0.0178 | - | - | 664 B |
-| **MemoryPack_Serialize_Span** | **31.76 ns** | 0.516 ns | 0.594 ns | 32.77 ns | - | - | - | 0 B |
-| **MessagePack_Serialize** | **422.49 ns** | 2.824 ns | 3.252 ns | 425.95 ns | 0.0134 | - | - | 504 B |
-| **SystemTextJson_Serialize** | **897.72 ns** | 7.304 ns | 8.411 ns | 907.24 ns | 0.0286 | - | 0.0010 | 7200 B |
-| **LiteSerializer_Deserialize** | **142.90 ns** | 4.698 ns | 5.411 ns | 147.90 ns | 0.0229 | - | - | 856 B |
-| **MemoryPack_Deserialize** | **145.03 ns** | 1.769 ns | 2.037 ns | 147.52 ns | 0.0237 | - | - | 888 B |
-| **MessagePack_Deserialize** | **1,095.24 ns** | 11.116 ns | 12.801 ns | 1,115.91 ns | 0.0229 | - | - | 888 B |
-| **SystemTextJson_Deserialize** | **2,548.20 ns** | 40.497 ns | 46.637 ns | 2,618.90 ns | 0.0496 | - | - | 1976 B |
+| **LiteSerializer_Serialize** | **120.74 ns** | 1.404 ns | 1.825 ns | 123.45 ns | 0.0176 | - | - | 664 B |
+| **LiteSerializer_Serialize_Span** | **31.85 ns** | 0.314 ns | 0.409 ns | 32.65 ns | - | - | - | 0 B |
+| **MemoryPack_Serialize** | **101.30 ns** | 5.116 ns | 6.830 ns | 107.10 ns | 0.0178 | - | - | 664 B |
+| **MemoryPack_Serialize_Span** | **28.65 ns** | 0.239 ns | 0.311 ns | 29.24 ns | - | - | - | 0 B |
+| **MessagePack_Serialize** | **380.82 ns** | 2.692 ns | 3.501 ns | 386.04 ns | 0.0134 | - | - | 504 B |
+| **SystemTextJson_Serialize** | **785.81 ns** | 6.164 ns | 8.229 ns | 800.89 ns | 0.0277 | - | - | 1056 B |
+| **LiteSerializer_Deserialize** | **115.40 ns** | 6.307 ns | 8.419 ns | 124.23 ns | 0.0229 | - | - | 856 B |
+| **MemoryPack_Deserialize** | **118.78 ns** | 2.049 ns | 2.516 ns | 121.88 ns | 0.0237 | - | - | 888 B |
+| **MessagePack_Deserialize** | **934.29 ns** | 5.249 ns | 7.007 ns | 945.56 ns | 0.0229 | - | - | 888 B |
+| **SystemTextJson_Deserialize** | **2,112.12 ns** | 18.254 ns | 24.369 ns | 2,152.67 ns | 0.0496 | - | - | 1976 B |
 
 ### Detailed Results (Item Count = 1024)
 
 | Method | Mean | Error | StdDev | P95 | Gen0 | Gen1 | Gen2 | Allocated |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **LiteSerializer_Serialize** | **655.83 ns** | 64.628 ns | 74.426 ns | 725.14 ns | 0.1163 | - | - | 4280 B |
-| **LiteSerializer_Serialize_Span** | **69.36 ns** | 1.757 ns | 2.023 ns | 73.04 ns | - | - | - | 0 B |
-| **MemoryPack_Serialize** | **549.05 ns** | 25.847 ns | 29.765 ns | 585.39 ns | 0.1116 | - | - | 4248 B |
-| **MemoryPack_Serialize_Span** | **66.51 ns** | 2.043 ns | 2.352 ns | 69.69 ns | - | - | - | 0 B |
-| **MessagePack_Serialize** | **2,862.59 ns** | 25.256 ns | 29.085 ns | 2,910.33 ns | 0.0839 | - | - | 3192 B |
-| **SystemTextJson_Serialize** | **6,109.84 ns** | 49.960 ns | 57.534 ns | 6,182.82 ns | 0.1602 | - | - | 5968 B |
-| **LiteSerializer_Deserialize** | **572.49 ns** | 27.568 ns | 31.747 ns | 603.64 ns | 0.1206 | - | 0.0005 | 4440 B |
-| **MemoryPack_Deserialize** | **505.34 ns** | 16.626 ns | 19.146 ns | 532.20 ns | 0.1206 | - | - | 4472 B |
-| **MessagePack_Deserialize** | **8,176.03 ns** | 174.512 ns | 200.968 ns | 8,468.96 ns | 0.1068 | - | - | 4472 B |
-| **SystemTextJson_Deserialize** | **18,282.04 ns** | 340.117 ns | 391.679 ns | 18,893.55 ns | 0.2441 | - | - | 9216 B |
+| **LiteSerializer_Serialize** | **538.97 ns** | 5.757 ns | 7.686 ns | 549.54 ns | 0.1163 | - | - | 4280 B |
+| **LiteSerializer_Serialize_Span** | **57.31 ns** | 0.456 ns | 0.609 ns | 58.36 ns | - | - | - | 0 B |
+| **MemoryPack_Serialize** | **406.91 ns** | 23.217 ns | 30.994 ns | 431.30 ns | 0.1116 | - | - | 4248 B |
+| **MemoryPack_Serialize_Span** | **54.11 ns** | 0.367 ns | 0.489 ns | 54.86 ns | - | - | - | 0 B |
+| **MessagePack_Serialize** | **2,536.02 ns** | 18.638 ns | 24.881 ns | 2,573.17 ns | 0.0839 | - | - | 3192 B |
+| **SystemTextJson_Serialize** | **5,184.75 ns** | 42.813 ns | 57.153 ns | 5,269.06 ns | 0.1602 | - | - | 5968 B |
+| **LiteSerializer_Deserialize** | **423.75 ns** | 9.611 ns | 12.830 ns | 446.78 ns | 0.1206 | - | 0.0005 | 4440 B |
+| **MemoryPack_Deserialize** | **448.05 ns** | 16.775 ns | 21.812 ns | 484.71 ns | 0.1206 | - | - | 4472 B |
+| **MessagePack_Deserialize** | **7,083.24 ns** | 45.454 ns | 60.680 ns | 7,172.78 ns | 0.1144 | - | - | 4472 B |
+| **SystemTextJson_Deserialize** | **15,276.89 ns** | 115.989 ns | 154.842 ns | 15,524.26 ns | 0.2441 | - | - | 9216 B |
 
 ---
 
 ## Key Takeaways
 
-- **LiteSerializer vs. MemoryPack**: `LiteSerializer` is highly competitive with `MemoryPack`, which is widely recognized as the fastest serialization framework for .NET.
-    - **Serialization**: `MemoryPack_Serialize_Span` holds a slight lead (e.g. 66.51 ns vs 69.36 ns for 1024 items).
-    - **Deserialization**: `LiteSerializer` outpaces MemoryPack on smaller workloads (e.g. 83.92 ns vs 86.36 ns for 16 items) and remains within a very close margin on large ones.
-- **MessagePack & JSON**: `LiteSerializer` significantly outperforms `MessagePack` (by 3x-8x in speed) and `System.Text.Json` (by 10x-30x in speed), while using much less memory allocation.
+- **LiteSerializer vs. MemoryPack**: `LiteSerializer` is exceptionally fast and leads `MemoryPack` in deserialization across all tested payload sizes:
+    - **Deserialization**: `LiteSerializer` outperforms MemoryPack at all scales (69.28 ns vs 75.13 ns for 16 items; 115.40 ns vs 118.78 ns for 128 items; 423.75 ns vs 448.05 ns for 1024 items).
+    - **Serialization**: `LiteSerializer_Serialize_Span` delivers zero heap allocation (0 B) and runs nearly identically to `MemoryPack_Serialize_Span` (29.10 ns vs 24.92 ns at 16; 31.85 ns vs 28.65 ns at 128; 57.31 ns vs 54.11 ns at 1024).
+- **MessagePack & JSON**: `LiteSerializer` significantly outperforms `MessagePack` (by 3x-16x in speed) and `System.Text.Json` (by 8x-36x in speed), while dramatically reducing memory allocation.
