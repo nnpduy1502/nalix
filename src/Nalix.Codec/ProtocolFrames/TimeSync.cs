@@ -73,7 +73,7 @@ public sealed partial class TimeSync : PacketBase<TimeSync>, IPacketTimestamped,
         this.MonoTicks = 0;
         this.SequenceId = 0;
         this.Type = ControlType.NONE;
-        this.Priority = PacketPriority.HIGH;
+        this.Priority = PacketPriority.URGENT;
         this.Flags = PacketFlags.SYSTEM;
     }
 

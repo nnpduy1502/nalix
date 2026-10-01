@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -468,25 +469,139 @@ public sealed class RuntimeDispatchAndHandlersTests
         }
     }
 
+    /// <summary>
+    /// A handler marked [BypassMiddleware] must bypass all registered middleware in the pipeline
+    /// and invoke the terminal handler directly.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteResolvedHandlerAsync_WithBypassMiddleware_SkipsMiddlewarePipeline()
+    {
+        int middlewareInvocations = 0;
+        TestTrackingMiddleware middleware = new(() => Interlocked.Increment(ref middlewareInvocations));
+
+        PacketDispatchOptions<TestPacket> options = new PacketDispatchOptions<TestPacket>()
+            .WithMiddleware(middleware);
+
+        bool handlerInvoked = false;
+        PacketHandler<TestPacket> descriptor = CreateDescriptor((_, _) =>
+        {
+            handlerInvoked = true;
+            return new ValueTask<object?>((object?)null);
+        }, bypassMiddleware: true);
+
+        FakeConnection connection = new();
+        try
+        {
+            await options.ExecuteResolvedHandlerAsync(
+                descriptor, new TestPacket(), connection, reliable: true, encryptedOnWire: false).AsTask();
+
+            handlerInvoked.Should().BeTrue("the terminal handler must still execute");
+            middlewareInvocations.Should().Be(0, "handlers with BypassMiddleware must skip all registered middleware");
+        }
+        finally
+        {
+            connection.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// A normal handler without [BypassMiddleware] must execute registered middleware as expected.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteResolvedHandlerAsync_WithoutBypassMiddleware_ExecutesMiddlewarePipeline()
+    {
+        int middlewareInvocations = 0;
+        TestTrackingMiddleware middleware = new(() => Interlocked.Increment(ref middlewareInvocations));
+
+        PacketDispatchOptions<TestPacket> options = new PacketDispatchOptions<TestPacket>()
+            .WithMiddleware(middleware);
+
+        bool handlerInvoked = false;
+        PacketHandler<TestPacket> descriptor = CreateDescriptor((_, _) =>
+        {
+            handlerInvoked = true;
+            return new ValueTask<object?>((object?)null);
+        }, bypassMiddleware: false);
+
+        FakeConnection connection = new();
+        try
+        {
+            await options.ExecuteResolvedHandlerAsync(
+                descriptor, new TestPacket(), connection, reliable: true, encryptedOnWire: false).AsTask();
+
+            handlerInvoked.Should().BeTrue();
+            middlewareInvocations.Should().Be(1, "normal handlers must execute registered middleware");
+        }
+        finally
+        {
+            connection.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// A handler marked [BypassMiddleware] must still enforce security policies like [PacketPermission].
+    /// </summary>
+    [Fact]
+    public async Task ExecuteResolvedHandlerAsync_WithBypassMiddleware_StillEnforcesPermission()
+    {
+        PacketDispatchOptions<TestPacket> options = new();
+
+        bool handlerInvoked = false;
+        PacketHandler<TestPacket> descriptor = CreateDescriptor((_, _) =>
+        {
+            handlerInvoked = true;
+            return new ValueTask<object?>((object?)null);
+        }, bypassMiddleware: true, permissionLevel: PermissionLevel.ADMIN);
+
+        FakeConnection connection = new(); // Default level is NONE (0)
+        try
+        {
+            await options.ExecuteResolvedHandlerAsync(
+                descriptor, new TestPacket(), connection, reliable: true, encryptedOnWire: false).AsTask();
+
+            handlerInvoked.Should().BeFalse("handlers with BypassMiddleware must still be blocked if permission check fails");
+            connection.FakeTcp.SentMessages.Should().NotBeEmpty("denial directive must be sent");
+        }
+        finally
+        {
+            connection.Dispose();
+        }
+    }
+
+    private sealed class TestTrackingMiddleware(Action onInvoke) : IPacketMiddleware<TestPacket>
+    {
+        public ValueTask InvokeAsync(IPacketContext<TestPacket> context, Func<CancellationToken, ValueTask> next)
+        {
+            onInvoke();
+            return next(context.CancellationToken);
+        }
+    }
+
     private static PacketHandler<TestPacket> CreateDescriptor(
         Func<object?, PacketContext<TestPacket>, ValueTask<object?>> invoker,
-        int timeoutMs = 0, bool requireEncryption = false)
-        => CreateDescriptor<TestPacket>(invoker, timeoutMs, requireEncryption);
+        int timeoutMs = 0, bool requireEncryption = false, bool bypassMiddleware = false, PermissionLevel? permissionLevel = null)
+        => CreateDescriptor<TestPacket>(invoker, timeoutMs, requireEncryption, bypassMiddleware, permissionLevel);
 
     private static PacketHandler<TPacket> CreateDescriptor<TPacket>(
         Func<object?, PacketContext<TPacket>, ValueTask<object?>> invoker,
-        int timeoutMs = 0, bool requireEncryption = false)
+        int timeoutMs = 0, bool requireEncryption = false, bool bypassMiddleware = false, PermissionLevel? permissionLevel = null)
         where TPacket : IPacket
     {
         PacketTimeoutAttribute? timeout = timeoutMs > 0 ? new PacketTimeoutAttribute(timeoutMs) : null;
         PacketEncryptionAttribute? encryption = requireEncryption ? new PacketEncryptionAttribute(true) : null;
+        PacketPermissionAttribute? permission = permissionLevel.HasValue ? new PacketPermissionAttribute(permissionLevel.Value) : null;
+        Dictionary<Type, Attribute>? customAttributes = bypassMiddleware
+            ? new Dictionary<Type, Attribute> { { typeof(BypassMiddlewareAttribute), new BypassMiddlewareAttribute() } }
+            : null;
+
         PacketMetadata metadata = new(
             opCode: new PacketOpcodeAttribute((ushort)1),
             timeout: timeout,
-            permission: null,
+            permission: permission,
             encryption: encryption,
             rateLimit: null,
-            transport: null);
+            transport: null,
+            customAttributes: customAttributes);
 
         return new PacketHandler<TPacket>(
             opCode: 1,

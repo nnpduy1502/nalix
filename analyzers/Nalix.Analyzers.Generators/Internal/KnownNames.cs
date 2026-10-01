@@ -37,6 +37,8 @@ internal class KnownNames
     public const string PacketTransportAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketTransportAttribute";
     public const string FromScopeAttributeMetadataName = "Nalix.Abstractions.Injection.FromScopeAttribute";
     public const string RpcServiceAttributeMetadataName = "Nalix.Abstractions.Networking.Rpc.RpcServiceAttribute";
+    public const string BypassMiddlewareAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.BypassMiddlewareAttribute";
+    public const string BypassMiddlewareAttributeName = "BypassMiddlewareAttribute";
 
     // Types
     public const string IniCommentShort = "IniComment";

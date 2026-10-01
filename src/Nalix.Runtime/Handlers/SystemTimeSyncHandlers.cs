@@ -26,6 +26,7 @@ public static class SystemTimeSyncHandlers
     /// <param name="context">The packet context.</param>
     /// <returns>A responding TimeSync packet or null.</returns>
     [ReservedOpcodePermitted]
+    [BypassMiddleware]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(ProtocolOpCode.SYSTEM_TIMESYNC)]

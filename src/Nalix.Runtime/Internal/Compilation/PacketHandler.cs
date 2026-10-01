@@ -62,6 +62,11 @@ internal readonly struct PacketHandler<TPacket>(
     public readonly PacketMetadata Metadata = metadata;
 
     /// <summary>
+    /// Gets a value indicating whether this handler bypasses the middleware pipeline.
+    /// </summary>
+    public readonly bool BypassMiddleware = metadata.BypassMiddleware;
+
+    /// <summary>
     /// The controller instance to invoke the handler on (cached for reuse).
     /// </summary>
     public readonly object? Instance = controllerInstance;

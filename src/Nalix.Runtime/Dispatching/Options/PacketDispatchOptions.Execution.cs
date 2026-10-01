@@ -46,7 +46,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // Void / Task / ValueTask handlers do not produce an outbound packet payload.
         context.SkipOutbound = HasNoOutboundResult(descriptor.ReturnType);
 
-        if (!_pipeline.IsEmpty)
+        if (!_pipeline.IsEmpty && !descriptor.BypassMiddleware)
         {
             // The packet pipeline runs first so middleware can transform, validate, or short-circuit
             // the context before the actual handler executes.

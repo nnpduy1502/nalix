@@ -75,4 +75,9 @@ public readonly struct PacketMetadata(
     /// </returns>
     public TAttribute? GetCustomAttribute<TAttribute>() where TAttribute : Attribute
         => CustomAttributes.TryGetValue(typeof(TAttribute), out Attribute? value) ? value as TAttribute : null;
+
+    /// <summary>
+    /// Gets a value indicating whether this handler bypasses the middleware pipeline.
+    /// </summary>
+    public readonly bool BypassMiddleware => this.GetCustomAttribute<BypassMiddlewareAttribute>() is not null;
 }
