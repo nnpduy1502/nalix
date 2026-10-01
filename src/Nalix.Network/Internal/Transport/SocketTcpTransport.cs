@@ -32,6 +32,9 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
     private readonly SequenceCounter _sendSequence = new();
     private readonly SequenceCounter _receiveSequence = new();
     private SemaphoreSlim _sendLock = null!;
+#pragma warning disable CA2213 // Scoped wrapper over _sendLock; does not own standalone unmanaged resources
+    private SendLockScope _sendLockScope = null!;
+#pragma warning restore CA2213
 
     #endregion Fields
 
@@ -73,6 +76,7 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
         _outer = outer ?? throw new ArgumentNullException(nameof(outer));
         _socket = socket ?? throw new ArgumentNullException(nameof(socket));
         _sendLock = new SemaphoreSlim(1, 1);
+        _sendLockScope = new SendLockScope(_sendLock);
     }
 
     /// <inheritdoc/>
@@ -136,17 +140,27 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
         => this.SEND_ASYNC(message, cancellationToken, acquireLock: true);
 
     /// <inheritdoc/>
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     ValueTask<IAsyncDisposable> IConnection.ITransport.AcquireSendLockAsync(CancellationToken cancellationToken)
-        => this.ACQUIRE_SEND_LOCK_ASYNC(cancellationToken);
+    {
+        if (!cancellationToken.IsCancellationRequested && _sendLock.Wait(0, cancellationToken))
+        {
+            return new ValueTask<IAsyncDisposable>(_sendLockScope);
+        }
+
+        return this.ACQUIRE_SEND_LOCK_ASYNC(cancellationToken);
+    }
 
     private async ValueTask<IAsyncDisposable> ACQUIRE_SEND_LOCK_ASYNC(CancellationToken cancellationToken)
     {
         await _sendLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        return new SendLockScope(_sendLock);
+        return _sendLockScope;
     }
 
-    private readonly struct SendLockScope(SemaphoreSlim sendLock) : IAsyncDisposable
+    private sealed class SendLockScope(SemaphoreSlim sendLock) : IAsyncDisposable
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValueTask DisposeAsync()
         {
             _ = sendLock.Release();
@@ -253,18 +267,59 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
         }
     }
 
-    private async ValueTask SEND_WITH_LOCK_ASYNC(ReadOnlyMemory<byte> message, CancellationToken cancellationToken)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private ValueTask SEND_WITH_LOCK_ASYNC(ReadOnlyMemory<byte> message, CancellationToken cancellationToken)
     {
-        await _sendLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
+        if (!cancellationToken.IsCancellationRequested && _sendLock.Wait(0, cancellationToken))
         {
-            await this.SEND_ASYNC(message, cancellationToken, acquireLock: false).ConfigureAwait(false);
+            ValueTask vt;
+            try
+            {
+                vt = this.SEND_ASYNC(message, cancellationToken, acquireLock: false);
+            }
+            catch
+            {
+                _ = _sendLock.Release();
+                throw;
+            }
+
+            if (vt.IsCompletedSuccessfully)
+            {
+                _ = _sendLock.Release();
+                return default;
+            }
+
+            return AWAIT_WITH_RELEASE_ASYNC(_sendLock, vt);
         }
-        finally
+
+        return AWAIT_ACQUIRE_AND_SEND_ASYNC(this, message, cancellationToken);
+
+        static async ValueTask AWAIT_WITH_RELEASE_ASYNC(SemaphoreSlim sendLock, ValueTask vt)
         {
-            _ = _sendLock.Release();
+            try
+            {
+                await vt.ConfigureAwait(false);
+            }
+            finally
+            {
+                _ = sendLock.Release();
+            }
+        }
+
+        static async ValueTask AWAIT_ACQUIRE_AND_SEND_ASYNC(SocketTcpTransport transport, ReadOnlyMemory<byte> msg, CancellationToken ct)
+        {
+            await transport._sendLock.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                await transport.SEND_ASYNC(msg, ct, acquireLock: false).ConfigureAwait(false);
+            }
+            finally
+            {
+                _ = transport._sendLock.Release();
+            }
         }
     }
+
 
     /// <inheritdoc/>
     [StackTraceHidden]
@@ -291,6 +346,7 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
     {
         _outer = null;
         _socket = null;
+        _sendLockScope = null!;
         _sendLock?.Dispose();
         _sendLock = null!;
         _sendSequence.Reset(0);
