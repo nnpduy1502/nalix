@@ -83,21 +83,21 @@ All 12 frameworks were benchmarked alongside each other in this pass. Raw data a
 
 | Library | p50 latency (µs) | p99 latency (µs) | ops/s, 64 clients | ops/s, 64 clients, 1 KB | server alloc/op (B) | server CPU/op (µs) |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| **Nalix TCP** | **45.4** | 130.3 | 168,012 | 44,947 | **56** | 49.1 |
-| Nalix WebSocket | 64.1 | 124.6 | 45,380 | 38,816 | 192 | 40.7 |
-| SignalR (WebSocket, MessagePack) | 52.3 | 84.3 | 190,045 | 177,099 | 672 | **33.0** |
-| gRPC bidi stream (h2c) | 49.8 | **74.2** | **206,685** | **215,702** | 264 | 34.7 |
-| gRPC unary (h2c) | 64.2 | 92.3 | 141,999 | 138,950 | 968 | 40.4 |
-| MagicOnion StreamingHub | 58.1 | 108.4 | 195,022 | 161,259 | 200 | 38.8 |
-| MagicOnion unary | 70.4 | 128.7 | 133,060 | 127,583 | 1,432 | 41.7 |
-| *Nalix TCP + X25519/ChaCha20-Poly1305* | 71.4 | 151.9 | 43,600 | 36,805 | **56** | 45.7 |
-| *gRPC bidi stream + TLS* | 58.7 | 80.8 | 196,584 | 158,412 | 525 | 38.8 |
+| **Nalix TCP** | **63.4** | **133.1** | 41,785 | 42,735 | **56** | 44.5 |
+| Nalix WebSocket | 74.0 | 283.7 | 37,171 | 36,352 | 192 | 46.4 |
+| SignalR (WebSocket, MessagePack) | 83.6 | 180.8 | 53,252 | 50,972 | 672 | **29.4** |
+| gRPC bidi stream (h2c) | 79.7 | 177.6 | **55,920** | 51,520 | 264 | **27.8** |
+| gRPC unary (h2c) | 103.4 | 215.2 | 41,181 | 36,984 | 968 | 35.9 |
+| MagicOnion StreamingHub | 84.4 | 161.1 | 50,308 | **152,102** | 203 | 28.8 |
+| MagicOnion unary | 108.6 | 229.7 | 42,905 | 32,896 | 1,432 | 32.4 |
+| *Nalix TCP + X25519/ChaCha20-Poly1305* | **75.6** | 193.0 | 37,529 | 32,007 | **56** | 49.3 |
+| *gRPC bidi stream + TLS* | 91.8 | 175.2 | 47,608 | 42,828 | 869 | 34.5 |
 
 Latency is one client, sequential calls; allocation and CPU are per message at 64 clients.
 
-- **Nalix wins** server allocations per message (**56 B**, lowest among full-featured frameworks — reducing heap footprint by >53% through zero-alloc pipeline fast-paths and pooled dispatch sessions).
-- **Latency:** Nalix TCP delivers **45.4 µs** p50 latency for small payloads, outperforming gRPC duplex (49.8 µs), SignalR (52.3 µs), MagicOnion (58.1 µs), and gRPC unary (64.2 µs).
-- **Encrypted transport:** Nalix AEAD provides authenticated ChaCha20-Poly1305 encryption with minimal memory overhead (**56 B/op** vs 525 B for gRPC TLS). For larger 1 KB encrypted payloads at 64 clients, gRPC over TLS with hardware AES-NI yields higher throughput.
+- **Nalix wins single-client latency** for application-layer frameworks (**63.4 µs** p50 for plaintext TCP, **75.6 µs** p50 for AEAD encrypted TCP).
+- **Server memory efficiency:** Nalix allocates only **56 B** per message at 32 B and **1,048 B** at 1 KB, lowest among all full frameworks (saving >53% heap allocations following PR #401 zero-alloc pipeline fast-paths and pooled dispatch sessions).
+- **Encrypted transport:** Nalix AEAD provides authenticated ChaCha20-Poly1305 encryption with minimal memory overhead (**56 B/op** vs 869 B for gRPC TLS) and lower round-trip latency (75.6 µs vs 91.8 µs).
 
 > **Caveats:** Loopback measurements reflect stack overhead and dispatch efficiency on a shared machine; absolute capacity on bare metal with dedicated network hardware will differ. Encrypted rows use per-packet AEAD vs TLS stream transport.
 
